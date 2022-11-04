@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { ReactComponent as ErrorIcon } from "../images/icon-error.svg";
+import ErrorIcon from "../images/icon-error.svg";
 
-const FormContainer = styled.div`
+const FormContainer = styled.form`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -14,6 +14,9 @@ const FormContainer = styled.div`
   -webkit-box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
   -moz-box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
   box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
+  @media only screen and (max-width: 850px) {
+    padding: 1.5rem;
+  }
 `;
 
 const Header = styled.div`
@@ -28,23 +31,40 @@ const Header = styled.div`
   -webkit-box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
   -moz-box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
   box-shadow: 0px 8px 0px 0px rgba(0, 0, 0, 0.2);
+  @media only screen and (max-width: 850px) {
+    margin-top: 4rem;
+    margin-bottom: 1.5rem;
+  }
+`;
+
+const InputContainer = styled.div`
+  position: relative;
+  width: 100%;
+  &::before {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    right: 1.5rem;
+    position: absolute;
+    content: url(${(props) => props.error && ErrorIcon});
+    z-index: 1;
+  }
 `;
 
 const Input = styled.input`
   width: 100%;
   height: 3.4rem;
   padding-left: 2rem;
-  margin-bottom: 1.3rem;
-  border: 1px solid #ccc;
+  border: ${(props) =>
+    props.error ? "2px solid hsl(0, 100%, 74%)" : "1px solid #ccc"};
   border-radius: 0.3rem;
   font-weight: 700;
   &:focus {
-    border: 1px solid hsl(248, 32%, 49%);
+    border: ${(props) =>
+      props.error
+        ? "2px solid hsl(0, 100%, 74%)"
+        : "1px solid hsl(248, 32%, 49%)"};
     outline: none;
-  }
-
-  &::before {
-    content: "testegsdgdsfjhghbsoignyhfszilgnfszhiogbnfsz";
   }
 `;
 
@@ -54,13 +74,13 @@ const Error = styled.p`
   text-align: end;
   font-style: italic;
   font-size: 0.7rem;
-  margin-top: -1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.3rem;
+  @media only screen and (max-width: 850px) {
+    margin-bottom: 1rem;
+  }
 `;
 
-const ErrorEmail = styled(Error)``;
-
-const Submit = styled.button`
+const Submit = styled.input`
   width: 100%;
   height: 3rem;
   margin-bottom: 1rem;
@@ -101,55 +121,117 @@ function Form() {
     password: "",
   });
 
+  const [formErrors, setFormErrors] = useState({
+    firstName: false,
+    lastName: false,
+    email: false,
+    emailNotValid: false,
+    password: false,
+  });
+
+  const handleChange = (e) => {
+    setFormInputs({ ...formInputs, [e.target.name]: e.target.value });
+
+    //reset error if user types to input
+    setFormErrors({ ...formErrors, [e.target.name]: false, emailNotValid: false});
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    //If test was't completed return
+    if (!handleCheckForm()) return;
+    console.log("Form submitted")
+  };
+
+  const handleCheckMail = (email) => {
+    // eslint-disable-next-line no-useless-escape
+    return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(email);
+  };
+
+  const handleCheckForm = () => {
+    let isFormValid = true;
+    let tempFormErrors = {...formErrors};
+
+    //If any input is empty, set value of its key to true, and mark form as not valid 
+    for (const [key, value] of Object.entries(formInputs)) {
+      if (value === "") {
+        tempFormErrors[key] = true;
+        isFormValid = false;
+      }
+    }
+
+    //If email input is not empty and didn't pass the test set value of its key to true
+    if (!(formInputs.email === "") && !handleCheckMail(formInputs.email)) {
+      tempFormErrors.emailNotValid = true;
+      isFormValid = false;
+    }
+
+    //Set error state
+    setFormErrors(tempFormErrors);
+    return isFormValid;
+  };
+
   return (
     <>
       <Header>
         <b>Try it free 7 days</b> then $20/mo. thereafter
       </Header>
-      <FormContainer>
-        <Input
-          type="text"
-          name="firstName"
-          placeholder="First Name"
-          value={formInputs.firstName}
-          onChange={(e) =>
-            setFormInputs({ ...formInputs, [e.target.name]: e.target.value })
-          }
-        />
-        <Error>First name cannot be empty</Error>
-        <Input
-          type="text"
-          name="lastName"
-          placeholder="Last Name"
-          value={formInputs.lastName}
-          onChange={(e) =>
-            setFormInputs({ ...formInputs, [e.target.name]: e.target.value })
-          }
-        />
-        <Error>Last name cannot be empty</Error>
-        <Input
-          type="text"
-          name="email"
-          placeholder="Email Address"
-          value={formInputs.email}
-          onChange={(e) =>
-            setFormInputs({ ...formInputs, [e.target.name]: e.target.value })
-          }
-        />
-        <Error>Email cannot be empty</Error>
-        <ErrorEmail>Looks like this is not an email</ErrorEmail>
-        <Input
-          type="password"
-          name="password"
-          placeholder="Password"
-          autocomplete="new-password"
-          value={formInputs.password}
-          onChange={(e) =>
-            setFormInputs({ ...formInputs, [e.target.name]: e.target.value })
-          }
-        />
-        <Error>Password cannot be empty</Error>
-        <Submit type="submit">CLAIM YOUR FREE TRIAL</Submit>
+      <FormContainer onSubmit={handleSubmit}>
+        <InputContainer error={formErrors.firstName ? true : false}>
+          <Input
+            error={formErrors.firstName ? true : false}
+            type="text"
+            name="firstName"
+            placeholder="First Name"
+            value={formInputs.firstName}
+            onChange={handleChange}
+          />
+        </InputContainer>
+        <Error>{formErrors.firstName && "First name cannot be empty"}</Error>
+        <InputContainer error={formErrors.lastName ? true : false}>
+          <Input
+            error={formErrors.lastName ? true : false}
+            type="text"
+            name="lastName"
+            placeholder="Last Name"
+            value={formInputs.lastName}
+            onChange={handleChange}
+          />
+        </InputContainer>
+        <Error>{formErrors.lastName && "Last name cannot be empty"}</Error>
+        <InputContainer
+          error={formErrors.email || formErrors.emailNotValid ? true : false}
+        >
+          <Input
+            error={formErrors.email || formErrors.emailNotValid ? true : false}
+            type="text"
+            name="email"
+            placeholder="Email Address"
+            value={formInputs.email}
+            onChange={handleChange}
+          />
+        </InputContainer>
+        <Error>
+          {formErrors.email
+            ? "Email cannot be empty"
+            : formErrors.emailNotValid
+            ? "Looks like this is not an email"
+            : ""}
+        </Error>
+        <InputContainer error={formErrors.password ? true : false}>
+          <Input
+            error={formErrors.password ? true : false}
+            type="password"
+            name="password"
+            placeholder="Password"
+            autocomplete="new-password"
+            value={formInputs.password}
+            onChange={handleChange}
+          />
+        </InputContainer>
+        <Error>{formErrors.password && "Password cannot be empty"}</Error>
+        <Submit type="submit" value="CLAIM YOUR FREE TRIAL" />
 
         <Paragraph>
           {"By clicking the button, you are agreeing to our "}
